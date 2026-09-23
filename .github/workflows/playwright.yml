@@ -58,6 +58,9 @@ jobs:
 
       - name: Run Playwright tests
         run: npx playwright test
+      
+      - name: Generate Playwright report
+        run: npm run test:report
 
       - name: Upload Playwright report
         if: always()
