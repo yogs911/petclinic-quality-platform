@@ -6,7 +6,7 @@
     "tsc": "tsc --noEmit",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
-    "test:report": "allure generate allure-results --clean -o playwright-report"
+    "test:report": "allure generate playwright-report/allure-results --clean -o playwright-report"
   },
   "repository": {
     "type": "git",
