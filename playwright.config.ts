@@ -28,19 +28,14 @@ export default defineConfig({
   /* Configure projects for major browsers */
   projects: [
     {
-      name: 'chromium',
+      name: 'ui-tests',
+      testDir: './tests/e2e',
       use: { ...devices['Desktop Chrome'] },
     },
-
-    // {
-    //   name: 'firefox',
-    //   use: { ...devices['Desktop Firefox'] },
-    // },
-
-    // {
-    //   name: 'webkit',
-    //   use: { ...devices['Desktop Safari'] },
-    // },
+    {
+      name: 'api-tests',
+      testDir: './tests/api',
+    },
   ],
 
   reporter: [
@@ -48,7 +43,7 @@ export default defineConfig({
     [
       'allure-playwright',
       {
-        resultsDir: 'allure-results',
+        resultsDir: 'report/allure-results',
         detail: true,
         suiteTitle: true,
         environmentInfo: {

@@ -1,4 +1,4 @@
-import { test, expect } from '../fixtures/base.fixture';
+import { test, expect } from '../../fixtures/base.fixture';
 import * as allure from 'allure-js-commons';
 
 test.describe('Veterinarian Page', () => {

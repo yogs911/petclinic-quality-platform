@@ -1,5 +1,5 @@
-import { OwnerFactory } from '../data/owner.factory';
-import { test, expect } from '../fixtures/base.fixture';
+import { OwnerFactory } from '../../data/owner.factory';
+import { test, expect } from '../../fixtures/base.fixture';
 import * as allure from 'allure-js-commons';
 
 test.describe('Find Owners Page', () => {
