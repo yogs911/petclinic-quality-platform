@@ -60,7 +60,22 @@ jobs:
           exit 1
 
       - name: Run Playwright tests
+        id: playwright_run
         run: npm test
+        continue-on-error: true
+
+      - name: Trigger Free Gemini Auto-Repair
+        if: steps.playwright_run.outcome == 'failure'
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: |
+          pip install google-genai # Installs the modern official Google client sdk
+          # 1. Run the Allure-aware agent script
+          python .github/scripts/gemini_repair.py
+          
+          # 2. Re-test the suite sequentially to check the repair outcome
+          echo "🔄 Verifying agent fix against secondary execution run..."
+          npx playwright test
 
       - name: Generate Allure report
         if: always()
@@ -72,7 +87,7 @@ jobs:
         with:
           name: allure-report
           path: report/allure-report/
-
+      
       - name: Show Petclinic logs
         if: failure()
         working-directory: spring-petclinic
