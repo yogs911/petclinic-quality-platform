@@ -8,3 +8,6 @@ node_modules/
 /playwright/.auth/
 /allure*
 report/*
+
+*.env
+*.vscode/

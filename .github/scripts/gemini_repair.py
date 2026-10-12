@@ -73,7 +73,7 @@ def call_gemini_with_fallback(client, prompt, system_instruction):
                         system_instruction=system_instruction,
                         # Note: Gemini 3 API strips traditional sampling params (temp/top_p) 
                         # to optimize uniform coding determinism via native presets.
-                        thinking_level="medium" # Leverages built-in reasoning context natively
+                        thinking_config=types.ThinkingConfig(thinking_level="medium")
                     )
                 )
                 return response.text.strip()
