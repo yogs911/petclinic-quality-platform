@@ -64,6 +64,10 @@ jobs:
         run: npm test
         continue-on-error: true
 
+      - name: Generate Allure report
+        if: always()
+        run: npm run test:report
+
       - name: Trigger Free Gemini Auto-Repair
         if: steps.playwright_run.outcome == 'failure'
         env:
@@ -76,7 +80,7 @@ jobs:
           # 2. Re-test the suite sequentially to check the repair outcome
           echo "🔄 Verifying agent fix against secondary execution run..."
           npx playwright test
-
+          
       - name: Generate Allure report
         if: always()
         run: npm run test:report

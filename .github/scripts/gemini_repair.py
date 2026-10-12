@@ -5,7 +5,7 @@ import re
 from google import genai
 from google.genai import types
 
-def get_failed_allure_context(results_dir="allure-results"):
+def get_failed_allure_context(results_dir="report/allure-results"):
     """Scans Allure raw results directory to extract the dynamic page and error metrics."""
     if not os.path.exists(results_dir):
         print(f"❌ Allure results directory not found at: {results_dir}")
