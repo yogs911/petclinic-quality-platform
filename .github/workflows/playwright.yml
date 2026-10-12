@@ -74,8 +74,9 @@ jobs:
         id: repair_agent
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        run: python .github/scripts/gemini_repair.py
-        continue-on-error: true # Prevents an exit code 2 from crashing the whole workflow run prematurely
+        run: |
+          pip install google-genai
+          python .github/scripts/gemini_repair.py
 
       - name: Verify Agent Fix Against Secondary Run
         # CRITICAL CONDITION: Only run if the repair step successfully executed AND modified a file
