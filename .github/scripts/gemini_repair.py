@@ -3,8 +3,10 @@ import json
 import glob
 import re
 import sys
+import time
 from google import genai
 from google.genai import types
+from google.genai.errors import ServerError, APIError
 
 def gather_all_failed_allure_contexts(results_dir="report/allure-results"):
     """
@@ -49,14 +51,55 @@ def gather_all_failed_allure_contexts(results_dir="report/allure-results"):
                 
     return failed_batches
 
+def call_gemini_with_fallback(client, prompt, system_instruction):
+    """
+    Executes the generation call using modern stable Gemini 3 series configurations, 
+    with built-in exponential backoff retries and fallback models.
+    """
+    # Active Gemini 3 ecosystem production models
+    models_to_try = ["gemini-3.8-flash", "gemini-3.5-flash"]
+    max_retries = 3
+    initial_delay = 4  # seconds
+
+    for model_name in models_to_try:
+        for attempt in range(max_retries):
+            try:
+                print(f"   🤖 Requesting {model_name} (Attempt {attempt + 1}/{max_retries})...")
+                
+                response = client.models.generate_content(
+                    model=model_name,
+                    contents=prompt,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        # Note: Gemini 3 API strips traditional sampling params (temp/top_p) 
+                        # to optimize uniform coding determinism via native presets.
+                        thinking_level="medium" # Leverages built-in reasoning context natively
+                    )
+                )
+                return response.text.strip()
+
+            except ServerError as e:
+                # Intercept 503 capacity issues or 500 errors gracefully
+                if "503" in str(e) or "unavailable" in str(e).lower() or "temporary" in str(e).lower():
+                    delay = initial_delay * (2 ** attempt)  # 4s, 8s, 16s
+                    print(f"   ⚠️ Server busy (503). Backing off for {delay}s before retrying...")
+                    time.sleep(delay)
+                else:
+                    raise e
+            except APIError as e:
+                print(f"   ⚠️ API Error encountered on {model_name}: {e}")
+                break  # Skip to next available fallback version
+
+    print("❌ All Gemini free-tier fallback options are currently overloaded. Escalating to human engineering queue.")
+    sys.exit(2)
+
 def run_batch_allure_repair():
     failed_batches = gather_all_failed_allure_contexts()
     
     if not failed_batches:
         print("✅ No test failures found in Allure results. Pipeline is healthy.")
-        sys.exit(2) # Exit code 2 tells GHA: Nothing to do, skip re-testing
+        sys.exit(2) # Signal to skip secondary execution run
 
-    # Initialize the standard, cost-effective GenAI Client
     client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
     
     system_instruction = (
@@ -67,15 +110,13 @@ def run_batch_allure_repair():
 
     any_file_modified = False
 
-    # Iterate through every unique Page Object file that experienced a failure
     for target_page_path, error_logs in failed_batches.items():
         print(f"\n🎯 Processing failures targeting: {target_page_path}")
-        print(f"   Collected {len(error_logs)} failure instances for this page.")
-
+        print(f"   Collected {len(error_logs)} unique failure data tracks for this object.")
+        
         with open(target_page_path, "r", encoding="utf-8") as f:
             original_page_code = f.read()
 
-        # Combine all separate error logs targeting this file into a single contextual prompt
         combined_errors_context = "\n--- Next Failure Instance ---\n".join(error_logs)
 
         prompt = f"""
@@ -95,17 +136,10 @@ def run_batch_allure_repair():
         4. Provide the COMPLETE updated code for {target_page_path}.
         """
 
-        print("🤖 Dispatching batch repair to gemini-3.8-flash...")
-        response = client.models.generate_content(
-            model='gemini-3.8-flash',
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=system_instruction,
-                temperature=0.1
-            )
-        )
+        raw_response = call_gemini_with_fallback(client, prompt, system_instruction)
 
-        cleaned_code = re.sub(r'^```ts\s*|^```typescript\s*|^```\s*|```$', '', response.text.strip(), flags=re.MULTILINE)
+        # Remove any markdown backticks if returned
+        cleaned_code = re.sub(r'^```ts\s*|^```typescript\s*|^```\s*|```$', '', raw_response, flags=re.MULTILINE)
 
         if cleaned_code != original_page_code:
             with open(target_page_path, "w", encoding="utf-8") as f:
@@ -115,10 +149,9 @@ def run_batch_allure_repair():
         else:
             print(f"⏸️ Analysis complete for {target_page_path}, but no alterations were required.")
 
-    # Final script system signals back to GitHub Actions
     if any_file_modified:
         print("\n🎉 Batch processing complete! One or more codebases updated.")
-        sys.exit(0) # Exit code 0 tells GHA: Fixes applied, execute re-testing sweep
+        sys.exit(0) # Triggers secondary evaluation sweep in GHA
     else:
         print("\n⏸️ Evaluated all failure nodes but no modifications were made.")
         sys.exit(2)
