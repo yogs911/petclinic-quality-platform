@@ -39,7 +39,7 @@ def get_failed_allure_context(results_dir="report/allure-results"):
             else:
                 # Fallback Strategy: Infer Page name from spec name (e.g. login.spec.ts -> pages/LoginPage.ts)
                 base_name = os.path.basename(spec_file).replace(".spec.ts", "")
-                dynamic_page_path = f"pages/{base_name.capitalize()}Page.ts"
+                dynamic_page_path = f"pages/{base_name}.page.ts"
 
             return spec_file, dynamic_page_path, error_message
 
