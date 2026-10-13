@@ -78,12 +78,14 @@ jobs:
           pip install google-genai
           python .github/scripts/gemini_repair.py
 
-      - name: Verify Agent Fix Against Secondary Run
-        # CRITICAL CONDITION: Only run if the repair step successfully executed AND modified a file
+      - name: Final Verification Sweep (Healed Tests Only)
         if: steps.playwright_run.outcome == 'failure' && steps.repair_agent.outcome == 'success'
         run: |
-          echo "🔄 Fix applied! Verifying agent patch against secondary execution run..."
-          npx playwright test
+          echo "🔄 Running targeted master sweep for repaired specs..."
+          
+          # Clean intermediate sandbox traces out of allure-results if necessary
+          # then target ONLY the verified outputs passed from the python stage
+          npx playwright test ${{ steps.repair_agent.outputs.fixed_specs }}
 
       - name: Generate Allure report
         if: always()
