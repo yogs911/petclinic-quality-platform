@@ -9,7 +9,7 @@ from google import genai
 from google.genai import types
 from google.genai.errors import ServerError, APIError
 
-def gather_failed_allure_contexts(results_dir="allure-results"):
+def gather_failed_allure_contexts(results_dir="report/allure-results"):
     """Scans the Allure results directory to find the current failures."""
     if not os.path.exists(results_dir):
         return {}
