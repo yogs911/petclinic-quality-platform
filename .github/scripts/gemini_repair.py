@@ -55,7 +55,7 @@ def call_gemini(client, prompt, system_instruction):
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     system_instruction=system_instruction,
-                    thinking_level="medium"
+                    thinking_config=types.ThinkingConfig(thinking_level="medium")
                 )
             )
             return response.text.strip()
